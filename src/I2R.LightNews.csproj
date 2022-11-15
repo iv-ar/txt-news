@@ -11,4 +11,10 @@
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="7.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="..\build_and_push.sh">
+        <Link>build_and_push.sh</Link>
+      </Content>
+    </ItemGroup>
+
 </Project>
