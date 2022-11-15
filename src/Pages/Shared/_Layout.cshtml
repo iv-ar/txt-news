@@ -3,14 +3,15 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <link rel="stylesheet" href="/reset.css" >
-    <link rel="stylesheet" href="/index.css" >
+    <link rel="stylesheet" href="/reset.css">
+    <link rel="stylesheet" href="/index.css">
     <title>@ViewData["Title"] - Lettnytt</title>
 </head>
 <body>
 <header>
-    <nav>
-        <a href="/nrk">NRK</a>
+    <nav style="display: flex; flex-direction: row; gap: 0 15px">
+        <a href="/nrk" style="color: @(Path.StartsWith("/nrk") ? "black" : "blue")">NRK</a>
+        <a href="/dagbladet" style="color: @(Path.StartsWith("/dagbladet") ? "black" : "blue")">Dagbladet</a>
     </nav>
 </header>
 <main>

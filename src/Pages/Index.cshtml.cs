@@ -16,14 +16,14 @@ public class IndexModel : PageModel
     public NewsSource Source { get; set; }
 
     public async Task<ActionResult> OnGet(string site) {
-        if (site.IsNullOrWhiteSpace()) {
-            return Redirect("/nrk");
-        }
-
         Source = site switch {
             "nrk" => await _grabber.GrabNrkAsync(),
-            _ => await _grabber.GrabNrkAsync()
+            _ => default
         };
+
+        if (Source == default) {
+            return Redirect("/nrk");
+        }
 
         return Page();
     }

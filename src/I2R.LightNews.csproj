@@ -7,8 +7,8 @@
 
     <ItemGroup>
         <PackageReference Include="AngleSharp" Version="0.17.1" />
-        <PackageReference Include="HtmlAgilityPack" Version="1.11.46" />
         <PackageReference Include="IOL.Helpers" Version="3.1.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="7.0.0" />
     </ItemGroup>
 
 </Project>

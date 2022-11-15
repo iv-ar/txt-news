@@ -10,11 +10,11 @@ public static class HtmlSanitiser
     private const string OptionalEndTagInlineElements = "rp,rt";
     private const string OptionalEndTagElements = OptionalEndTagInlineElements + "," + OptionalEndTagBlockElements;
     private const string BlockElements = OptionalEndTagBlockElements + ",address,article,aside,blockquote,caption,center,del,dir,div,dl,figure,figcaption,footer,h1,h2,h3,h4,h5,h6,header,hgroup,hr,ins,map,menu,nav,ol,pre,section,table,ul";
-    private const string InlineElements = OptionalEndTagInlineElements + ",a,abbr,acronym,b,bdi,bdo,big,br,cite,code,del,dfn,em,font,i,img,ins,kbd,label,map,mark,q,ruby,rp,rt,s,samp,small,span,strike,strong,sub,sup,time,tt,u,var";
+    private const string InlineElements = OptionalEndTagInlineElements + ",a,abbr,acronym,b,bdi,bdo,big,cite,code,del,dfn,em,font,i,img,ins,kbd,label,map,mark,q,ruby,rp,rt,s,samp,small,span,strike,strong,sub,sup,time,tt,u,var";
     private const string DefaulValidElements = VoidElements + "," + BlockElements + "," + InlineElements + "," + OptionalEndTagElements;
     private const string DefaulUriAttrs = "background,cite,href,longdesc,src,xlink:href";
     private const string DefaulSrcsetAttrs = "srcset";
-    private const string DefaultHtmlAttrs = "abbr,align,alt,axis,bgcolor,border,cellpadding,cellspacing,class,clear,color,cols,colspan,compact,coords,dir,face,headers,height,hreflang,hspace,ismap,lang,language,nohref,nowrap,rel,rev,rows,rowspan,rules,scope,scrolling,shape,size,span,start,summary,tabindex,target,title,type,valign,value,vspace,width";
+    private const string DefaultHtmlAttrs = "abbr,align,class,alt,axis,bgcolor,border,cellpadding,cellspacing,clear,color,cols,colspan,compact,coords,dir,face,headers,height,hreflang,hspace,ismap,lang,language,nohref,nowrap,rel,rev,rows,rowspan,rules,scope,scrolling,shape,size,span,start,summary,tabindex,target,title,type,valign,value,vspace,width";
     private const string DefaulValidAttrs = DefaulUriAttrs + "," + DefaulSrcsetAttrs + "," + DefaultHtmlAttrs;
     private static readonly ISet<string> ValidElements = DefaulValidElements.Split(',').ToHashSet(StringComparer.OrdinalIgnoreCase);
     private static readonly ISet<string> ValidAttributes = DefaulValidAttrs.Split(',').ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -24,6 +24,7 @@ public static class HtmlSanitiser
         for (var i = element.ChildNodes.Length - 1; i >= 0; i--) {
             Sanitize(element.ChildNodes[i], excludeSelectors);
         }
+
 
         return element.InnerHtml;
     }
@@ -40,8 +41,14 @@ public static class HtmlSanitiser
         if (node is IElement htmlElement) {
             if (excludeSelectors.HasValue()) {
                 foreach (var selector in excludeSelectors.Split(',')) {
+                    // Console.WriteLine(new {
+                    //     selector,
+                    //     tag = htmlElement.TagName,
+                    //     classes = JsonSerializer.Serialize(htmlElement.ClassList.ToArray())
+                    // });
+
                     if (selector.StartsWith(".")) {
-                        if (htmlElement.ClassList.Contains(excludeSelectors)) {
+                        if (htmlElement.ClassList.Contains(selector.Replace(".", ""))) {
                             Console.WriteLine("Removed: " + htmlElement.TagName + ", because of: " + selector);
                             htmlElement.Remove();
                             continue;
@@ -49,14 +56,14 @@ public static class HtmlSanitiser
                     }
 
                     if (selector.StartsWith("#")) {
-                        if (htmlElement.Id == selector) {
+                        if (htmlElement.Id == selector.Replace("#", "")) {
                             Console.WriteLine("Removed: " + htmlElement.TagName + ", because of: " + selector);
                             htmlElement.Remove();
                             continue;
                         }
                     }
 
-                    if (htmlElement.TagName == selector) {
+                    if (htmlElement.TagName == selector.ToUpper()) {
                         Console.WriteLine("Removed: " + htmlElement.TagName + ", because of: " + selector);
                         htmlElement.Remove();
                     }
@@ -65,7 +72,6 @@ public static class HtmlSanitiser
 
             if (!ValidElements.Contains(htmlElement.TagName)) {
                 htmlElement.Remove();
-                return;
             }
 
             for (var i = htmlElement.Attributes.Length - 1; i >= 0; i--) {

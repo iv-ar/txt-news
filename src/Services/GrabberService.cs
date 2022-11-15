@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 using I2R.LightNews.Utilities;
 
@@ -35,7 +36,7 @@ public class GrabberService
 
         using var md5 = MD5.Create();
         var articleFilePrefix = "art-" + NrkPrefix + "-" + Convert.ToHexString(md5.ComputeHash(Encoding.UTF8.GetBytes(url)));
-        var source = await GrabSourceAsync(url, articleFilePrefix, true);
+        var source = await GrabSourceAsync(url, articleFilePrefix);
         var parser = new HtmlParser();
         var doc = await parser.ParseDocumentAsync(source.Content);
         var result = new NewsArticle() {
@@ -58,7 +59,12 @@ public class GrabberService
         DateTime.TryParse(doc.QuerySelector("time.dateModified")?.Attributes["datetime"]?.Value, out var modified);
         result.UpdatedAt = modified;
         result.PublishedAt = published;
-        result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, "img,a,.video-reference,.image-reference,.reference");
+        if (doc.QuerySelector("kortstokk-app") != default) {
+            result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".dhks-cardSection").InnerHtml, ".dhks-background,.dhks-actions,.dhks-credits,.dhks-sticky-reset,.dhks-byline");
+        } else {
+            result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, "a,.section-reference,.video-reference,.image-reference,.reference");
+        }
+
         return result;
     }
 

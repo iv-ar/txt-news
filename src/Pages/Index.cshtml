@@ -5,15 +5,17 @@
 }
 
 @foreach (var article in Model.Source.Articles) {
-    <section>
+    <section style="margin-bottom: 8px;display: flex; flex-direction: column">
         <a href="/les/@Model.Source.Name?url=@article.Href">
-            <h2>@Html.Raw(article.Title)</h2>
-            <a href="@article.Href" rel="noreferrer">Kilde</a>
+            <h2 style="font-size: 18px">@Html.Raw(article.Title)</h2>
         </a>
+        <a href="@article.Href" style="font-size: 14px;display:flex;justify-content: end" rel="noreferrer">Les på nrk.no</a>
     </section>
 }
 <footer>
-    <small>
-        @Model.Source.Attribution &copy; @Model.Source.Name, @(DateTime.UtcNow.Subtract(Model.Source.Created).Minutes) minutter siden
-    </small>
+    <p>
+        <small>
+            @Model.Source.Attribution &copy; @Model.Source.Name, @(DateTime.UtcNow.Subtract(Model.Source.Created).Minutes) minutter siden
+        </small>
+    </p>
 </footer>

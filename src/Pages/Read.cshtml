@@ -4,23 +4,31 @@
     ViewData["Title"] = Model.Source.Title;
 }
 
-<div style="display: flex; justify-content: space-between">
+<div id="art-header" style="display: flex; justify-content: space-between">
     <div>
         <h1>@Model.Source.Title</h1>
         <p>@Model.Source.Subtitle</p>
     </div>
-    <div style="display: flex; flex-direction: row">
+    <div style="display: flex; flex-direction: column; flex-wrap: nowrap">
         <div style="flex-direction:column">
-            <small>Publisert: @Model.Source.PublishedAt.ToString("F")</small><br>
-            <small>Oppdatert: @Model.Source.UpdatedAt.ToString("F")</small>
+            @if (Model.Source.PublishedAt != default) {
+                <small style="white-space: nowrap">Publisert: @Model.Source.PublishedAt.ToString("dd-MM-yyyy hh:mm:ss")</small>
+            }
+            @if (Model.Source.UpdatedAt != default) {
+                <br/>
+                <small style="white-space: nowrap">Oppdatert: @Model.Source.UpdatedAt.ToString("dd-MM-yyyy hh:mm:ss")</small>
+            }
         </div>
-        <div style="margin: 0 5px; height: 100%; border: 1px solid black"></div>
+        <div style="margin: 0 5px; border: 0.5px solid black"></div>
         <div style="flex-direction:column">
             @foreach (var author in Model.Source.Authors) {
-                <small><em>@author.Name</em>: @author.Title</small> <br/>
+                <small style="white-space: nowrap"><b>@author.Name</b>: @author.Title</small>
+                <br/>
             }
         </div>
     </div>
 </div>
-<hr>
-@Html.Raw(Model.Source.Content)
+
+<div id="art-body">
+    @Html.Raw(Model.Source.Content)
+</div>
