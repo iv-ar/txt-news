@@ -1,0 +1,8 @@
+**/AppData
+**/obj
+**/bin
+**/.idea
+**/Properties
+Dockerfile
+*.gitignore
+*.dockerignore
