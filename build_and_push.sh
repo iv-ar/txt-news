@@ -68,7 +68,7 @@ fi
 echo "Building docker image"
 echo
 
-docker buildx build --platform linux/amd64 -t $IMAGE_NAME:$NEW_VERSION .
+docker build -t $IMAGE_NAME:$NEW_VERSION .
 
 docker tag $IMAGE_NAME:$NEW_VERSION $HUB_NAME:$NEW_VERSION
 

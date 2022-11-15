@@ -41,12 +41,6 @@ public static class HtmlSanitiser
         if (node is IElement htmlElement) {
             if (excludeSelectors.HasValue()) {
                 foreach (var selector in excludeSelectors.Split(',')) {
-                    // Console.WriteLine(new {
-                    //     selector,
-                    //     tag = htmlElement.TagName,
-                    //     classes = JsonSerializer.Serialize(htmlElement.ClassList.ToArray())
-                    // });
-
                     if (selector.StartsWith(".")) {
                         if (htmlElement.ClassList.Contains(selector.Replace(".", ""))) {
                             Console.WriteLine("Removed: " + htmlElement.TagName + ", because of: " + selector);
@@ -71,6 +65,7 @@ public static class HtmlSanitiser
             }
 
             if (!ValidElements.Contains(htmlElement.TagName)) {
+                Console.WriteLine("Removed: " + htmlElement.TagName + ", because it is in the list of invalid tags");
                 htmlElement.Remove();
             }
 
