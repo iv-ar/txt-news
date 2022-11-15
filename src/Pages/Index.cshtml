@@ -1,0 +1,19 @@
+﻿@page "{site?}"
+@model IndexModel
+@{
+    ViewData["Title"] = Model.Source.Name;
+}
+
+@foreach (var article in Model.Source.Articles) {
+    <section>
+        <a href="/les/@Model.Source.Name?url=@article.Href">
+            <h2>@Html.Raw(article.Title)</h2>
+            <a href="@article.Href" rel="noreferrer">Kilde</a>
+        </a>
+    </section>
+}
+<footer>
+    <small>
+        @Model.Source.Attribution &copy; @Model.Source.Name, @(DateTime.UtcNow.Subtract(Model.Source.Created).Minutes) minutter siden
+    </small>
+</footer>
