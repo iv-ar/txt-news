@@ -62,7 +62,7 @@ public class GrabberService
         if (doc.QuerySelector("kortstokk-app") != default) {
             result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".dhks-cardSection").InnerHtml, ".dhks-background,.dhks-actions,.dhks-credits,.dhks-sticky-reset,.dhks-byline");
         } else {
-            result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, "a,.section-reference,.video-reference,.image-reference,.reference");
+            result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, "a,.section-reference,.widget,.article-body--updating,.video-reference,.image-reference,.reference");
         }
 
         return result;
