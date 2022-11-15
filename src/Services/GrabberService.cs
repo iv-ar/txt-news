@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 using I2R.LightNews.Utilities;
 
@@ -11,7 +10,7 @@ public class GrabberService
     private readonly ILogger<GrabberService> _logger;
     private readonly HttpClient _http;
     private const string NrkPrefix = "nrkno";
-    private const int StaleTime = 100800;
+    private const int StaleTime = 1800;
 
     private static AppPath _cachePath => new() {
         HostPath = "AppData/__sitecache"
