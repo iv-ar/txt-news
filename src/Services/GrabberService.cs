@@ -33,7 +33,8 @@ public class GrabberService
             "nrk.no/mat",
             "nrk.no/radio",
             "nrk.no/tv",
-            "nrk.no/xl"
+            "nrk.no/video",
+            "nrk.no/podkast"
         };
 
         return strippedUrl.StartsWith("nrk.no") && ignored.All(c => !strippedUrl.Contains(c));
@@ -44,59 +45,69 @@ public class GrabberService
         using var md5 = MD5.Create();
         var articleFilePrefix = "art-" + NrkPrefix + "-" + Convert.ToHexString(md5.ComputeHash(Encoding.UTF8.GetBytes(url)));
         return await _memoryCache.GetOrCreateAsync(articleFilePrefix, async entry => {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-                var source = await GrabSourceAsync(url, articleFilePrefix);
-                var parser = new HtmlParser();
-                var doc = await parser.ParseDocumentAsync(source.Content);
-                var result = new NewsArticle() {
-                    CachedAt = source.CacheFileCreatedAt,
-                    Href = url,
-                    Title = doc.QuerySelector("h1.title")?.TextContent,
-                    Subtitle = doc.QuerySelector(".article-lead p")?.TextContent,
-                    Authors = new List<NewsArticle.Author>()
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            var source = await GrabSourceAsync(url, articleFilePrefix);
+            var parser = new HtmlParser();
+            var doc = await parser.ParseDocumentAsync(source.Content);
+            var result = new NewsArticle() {
+                CachedAt = source.CacheFileCreatedAt,
+                Href = url,
+                Title = doc.QuerySelector("h1.title")?.TextContent,
+                Subtitle = doc.QuerySelector(".article-lead p")?.TextContent,
+                Authors = new List<NewsArticle.Author>()
+            };
+
+            foreach (var authorNode in doc.QuerySelectorAll(".authors .author")) {
+                var author = new NewsArticle.Author() {
+                    Name = authorNode.QuerySelector(".author__name")?.TextContent,
+                    Title = authorNode.QuerySelector(".author__role")?.TextContent
                 };
+                result.Authors.Add(author);
+            }
 
-                foreach (var authorNode in doc.QuerySelectorAll(".authors .author")) {
-                    var author = new NewsArticle.Author() {
-                        Name = authorNode.QuerySelector(".author__name")?.TextContent,
-                        Title = authorNode.QuerySelector(".author__role")?.TextContent
-                    };
-                    result.Authors.Add(author);
-                }
+            DateTime.TryParse(doc.QuerySelector("time.datePublished")?.Attributes["datetime"]?.Value, out var published);
+            DateTime.TryParse(doc.QuerySelector("time.dateModified")?.Attributes["datetime"]?.Value, out var modified);
 
-                DateTime.TryParse(doc.QuerySelector("time.datePublished")?.Attributes["datetime"]?.Value, out var published);
-                DateTime.TryParse(doc.QuerySelector("time.dateModified")?.Attributes["datetime"]?.Value, out var modified);
+            result.UpdatedAt = modified;
+            result.PublishedAt = published;
 
-                result.UpdatedAt = modified;
-                result.PublishedAt = published;
+            var defaultExcludes = new List<string>() {
+                ".dhks-background",
+                ".dhks-actions",
+                ".dhks-credits",
+                ".dhks-sticky-reset",
+                ".dhks-byline",
+                ".compilation-reference",
+                ".section-reference",
+                ".image",
+                ".fact__expand",
+                ".image-reference",
+                ".video-reference",
+                ".article-body--updating",
+                ".external-reference",
+                ".reference",
+                ".atlas-reference",
+                ".remoterenderedcontent-reference",
+                "text:Følg utviklingen i NRKs Nyhetssenter",
+                "text:Bli med i debatten under"
+            };
 
-                if (doc.QuerySelector("kortstokk-app") != default) {
-                    var excludes = new List<string>() {
-                        ".dhks-background",
-                        ".dhks-actions",
-                        ".dhks-credits",
-                        ".dhks-sticky-reset",
-                        ".dhks-byline"
-                    };
-                    result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".dhks-cardSection").InnerHtml, string.Join(',', excludes));
-                } else if (url.Contains("nrk.no/nyheter")) {
-                    result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".bulletin-text").InnerHtml);
-                } else {
-                    var excludes = new List<string>() {
-                        ".compilation-reference",
-                        ".section-reference",
-                        ".widget",
-                        ".image-reference",
-                        ".video-reference",
-                        ".article-body--updating",
-                        ".reference"
-                    };
-                    result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, string.Join(',', excludes));
-                }
+            if (doc.QuerySelector("kortstokk-app") != default) {
+                result.Title = doc.QuerySelector(".dhks-title span")?.TextContent;
+                result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".dhks-cardSection").InnerHtml, string.Join(',', defaultExcludes));
+            } else if (url.Contains("/xl/")) {
+                var subtitle = doc.QuerySelector(".article-feature__intro p").InnerHtml;
+                result.Title = doc.QuerySelector(".article-feature__intro h1").TextContent;
+                var contentHtml = doc.QuerySelector(".article-feature__body").InnerHtml;
+                result.Content = HtmlSanitiser.SanitizeHtmlFragment(subtitle + contentHtml, string.Join(',', defaultExcludes));
+            } else if (url.Contains("nrk.no/nyheter") || doc.QuerySelector(".bulletin-text") != default) {
+                result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".bulletin-text").InnerHtml);
+            } else {
+                result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, string.Join(',', defaultExcludes));
+            }
 
-                return result;
-            })
-            ;
+            return result;
+        });
     }
 
     public async Task<NewsSource> GrabNrkAsync() {
