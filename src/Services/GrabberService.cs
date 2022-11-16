@@ -2,12 +2,14 @@ using System.Security.Cryptography;
 using System.Text;
 using AngleSharp.Html.Parser;
 using I2R.LightNews.Utilities;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace I2R.LightNews.Services;
 
 public class GrabberService
 {
     private readonly ILogger<GrabberService> _logger;
+    private readonly MemoryCache _memoryCache;
     private readonly HttpClient _http;
     private const string NrkPrefix = "nrkno";
     private const int StaleTime = 1800;
@@ -16,88 +18,113 @@ public class GrabberService
         HostPath = "AppData/__sitecache"
     };
 
-    public GrabberService(ILogger<GrabberService> logger, HttpClient http) {
+    public GrabberService(ILogger<GrabberService> logger, HttpClient http, MemoryCache memoryCache) {
         _logger = logger;
         _http = http;
+        _memoryCache = memoryCache;
     }
 
-    public async Task<NewsArticle> GrabNrkArticleAsync(string url) {
+    private bool IsSupportedNrkUrl(string url) {
         var strippedUrl = url.Replace("https://", "")
             .Replace("http://", "")
             .Replace("www.", "");
 
-        if (!strippedUrl.StartsWith("nrk.no")
-            || strippedUrl.StartsWith("nrk.no/mat")
-            || strippedUrl.StartsWith("nrk.no/tv")
-            || strippedUrl.StartsWith("nrk.no/radio")
-            || strippedUrl.StartsWith("nrk.no/xl")
-           ) return default;
-
-        using var md5 = MD5.Create();
-        var articleFilePrefix = "art-" + NrkPrefix + "-" + Convert.ToHexString(md5.ComputeHash(Encoding.UTF8.GetBytes(url)));
-        var source = await GrabSourceAsync(url, articleFilePrefix);
-        var parser = new HtmlParser();
-        var doc = await parser.ParseDocumentAsync(source.Content);
-        var result = new NewsArticle() {
-            CachedAt = source.CacheFileCreatedAt,
-            Href = url,
-            Title = doc.QuerySelector("h1.title")?.TextContent,
-            Subtitle = doc.QuerySelector(".article-lead p")?.TextContent,
-            Authors = new List<NewsArticle.Author>()
+        var ignored = new List<string>() {
+            "nrk.no/mat",
+            "nrk.no/radio",
+            "nrk.no/tv",
+            "nrk.no/xl"
         };
 
-        foreach (var authorNode in doc.QuerySelectorAll(".authors .author")) {
-            var author = new NewsArticle.Author() {
-                Name = authorNode.QuerySelector(".author__name")?.TextContent,
-                Title = authorNode.QuerySelector(".author__role")?.TextContent
+        return strippedUrl.StartsWith("nrk.no") && ignored.All(c => !strippedUrl.Contains(c));
+    }
+
+    public async Task<NewsArticle> GrabNrkArticleAsync(string url) {
+        if (!IsSupportedNrkUrl(url)) return default;
+        using var md5 = MD5.Create();
+        var articleFilePrefix = "art-" + NrkPrefix + "-" + Convert.ToHexString(md5.ComputeHash(Encoding.UTF8.GetBytes(url)));
+        return await _memoryCache.GetOrCreateAsync(articleFilePrefix, async entry => {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            var source = await GrabSourceAsync(url, articleFilePrefix);
+            var parser = new HtmlParser();
+            var doc = await parser.ParseDocumentAsync(source.Content);
+            var result = new NewsArticle() {
+                CachedAt = source.CacheFileCreatedAt,
+                Href = url,
+                Title = doc.QuerySelector("h1.title")?.TextContent,
+                Subtitle = doc.QuerySelector(".article-lead p")?.TextContent,
+                Authors = new List<NewsArticle.Author>()
             };
-            result.Authors.Add(author);
-        }
 
-        DateTime.TryParse(doc.QuerySelector("time.datePublished")?.Attributes["datetime"]?.Value, out var published);
-        DateTime.TryParse(doc.QuerySelector("time.dateModified")?.Attributes["datetime"]?.Value, out var modified);
-        result.UpdatedAt = modified;
-        result.PublishedAt = published;
-        if (doc.QuerySelector("kortstokk-app") != default) {
-            result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".dhks-cardSection").InnerHtml, ".dhks-background,.dhks-actions,.dhks-credits,.dhks-sticky-reset,.dhks-byline");
-        } else {
-            result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, "a,.section-reference,.widget,.article-body--updating,.video-reference,.image-reference,.reference");
-        }
+            foreach (var authorNode in doc.QuerySelectorAll(".authors .author")) {
+                var author = new NewsArticle.Author() {
+                    Name = authorNode.QuerySelector(".author__name")?.TextContent,
+                    Title = authorNode.QuerySelector(".author__role")?.TextContent
+                };
+                result.Authors.Add(author);
+            }
 
-        return result;
+            DateTime.TryParse(doc.QuerySelector("time.datePublished")?.Attributes["datetime"]?.Value, out var published);
+            DateTime.TryParse(doc.QuerySelector("time.dateModified")?.Attributes["datetime"]?.Value, out var modified);
+
+            result.UpdatedAt = modified;
+            result.PublishedAt = published;
+
+            if (doc.QuerySelector("kortstokk-app") != default) {
+                var excludes = new List<string>() {
+                    ".dhks-background",
+                    ".dhks-actions",
+                    ".dhks-credits",
+                    ".dhks-sticky-reset",
+                    ".dhks-byline"
+                };
+                result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".dhks-cardSection").InnerHtml, string.Join(',', excludes));
+            } else {
+                var excludes = new List<string>() {
+                    ".compilation-reference",
+                    ".section-reference",
+                    ".widget",
+                    ".image-reference",
+                    ".video-reference",
+                    ".article-body--updating",
+                    ".reference"
+                };
+                result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, string.Join(',', excludes));
+            }
+
+            return result;
+        });
     }
 
     public async Task<NewsSource> GrabNrkAsync() {
-        var source = await GrabSourceAsync("https://nrk.no", NrkPrefix);
-        var parser = new HtmlParser();
-        var doc = await parser.ParseDocumentAsync(source.Content);
-        var result = new NewsSource() {
-            Name = "nrk",
-            Attribution = "Fra https://nrk.no",
-            Created = source.CacheFileCreatedAt.DateTime,
-            CanonicalUrl = doc.QuerySelector("link[rel='canonical']")?.Attributes["href"]?.Value ?? "uvisst",
-            Articles = new List<NewsArticle>()
-        };
-
-        foreach (var articleAnchorNode in doc.QuerySelectorAll("main section a")) {
-            var article = new NewsArticle {
-                Href = articleAnchorNode.Attributes["href"]?.Value.Trim(),
-                Title = articleAnchorNode.QuerySelector(".kur-room__title span")?.TextContent.Trim()
+        return await _memoryCache.GetOrCreateAsync(NrkPrefix, async entry => {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(31);
+            var source = await GrabSourceAsync("https://nrk.no", NrkPrefix);
+            var parser = new HtmlParser();
+            var doc = await parser.ParseDocumentAsync(source.Content);
+            var result = new NewsSource() {
+                Name = "nrk",
+                Attribution = "Fra https://nrk.no",
+                Created = source.CacheFileCreatedAt.DateTime,
+                CanonicalUrl = doc.QuerySelector("link[rel='canonical']")?.Attributes["href"]?.Value ?? "uvisst",
+                Articles = new List<NewsArticle>()
             };
 
-            if (
-                article.Href.IsNullOrWhiteSpace()
-                || article.Title.IsNullOrWhiteSpace()
-                || (!article.Href?.StartsWith("https://www.nrk.no") ?? true)
-                || (article.Href?.StartsWith("https://www.nrk.no/mat") ?? false)
-            ) {
-                continue;
+            foreach (var articleAnchorNode in doc.QuerySelectorAll("main section a")) {
+                var article = new NewsArticle {
+                    Href = articleAnchorNode.Attributes["href"]?.Value.Trim(),
+                    Title = articleAnchorNode.QuerySelector(".kur-room__title span")?.TextContent.Trim()
+                };
+
+                if (article.Href.IsNullOrWhiteSpace() || article.Title.IsNullOrWhiteSpace() || !IsSupportedNrkUrl(article.Href)) {
+                    continue;
+                }
+
+                result.Articles.Add(article);
             }
 
-            result.Articles.Add(article);
-        }
-
-        return result;
+            return result;
+        });
     }
 
     private class SourceResult
