@@ -1,10 +1,81 @@
+/* Box sizing rules */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* Remove default margin */
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+a,
+figure,
+blockquote,
+dl,
+dd {
+    margin: 0;
+}
+
+/* Remove list styles on ul, ol elements with a list role, which suggests default styling will be removed */
+ul[role="list"],
+ol[role="list"] {
+    list-style: none;
+}
+
+/* Set core root defaults */
+html:focus-within {
+    scroll-behavior: smooth;
+}
+
+/* A elements that don't have a class get default styles */
+a:not([class]) {
+    text-decoration-skip-ink: auto;
+}
+
+/* Make images easier to work with */
+img,
+picture {
+    max-width: 100%;
+    display: block;
+}
+
+/* Inherit fonts for inputs and buttons */
+input,
+button,
+textarea,
+select {
+    font: inherit;
+}
+
+/* Remove all animations and transitions for people that prefer not to see them */
+@media (prefers-reduced-motion: reduce) {
+    html:focus-within {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+
 body {
+    min-height: 100vh;
+    text-rendering: optimizeSpeed;
+    line-height: 1.5;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
     padding: 5vh clamp(1rem, 5vw, 3rem) 1rem;
     font-family: system-ui, sans-serif;
-    line-height: 1.5;
     color: #222;
     background: white;
 }
@@ -53,4 +124,20 @@ article * + * {
 
 .quote-source {
     padding-left: 20px;
+}
+
+.news-link {
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column
+}
+
+.news-link h2 {
+    font-size: 18px;
+}
+
+.news-link .source-link {
+    font-size: 14px;
+    display: flex;
+    justify-content: end
 }
