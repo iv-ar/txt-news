@@ -9,7 +9,7 @@ namespace I2R.LightNews.Services;
 public class GrabberService
 {
     private readonly ILogger<GrabberService> _logger;
-    private readonly MemoryCache _memoryCache;
+    private readonly IMemoryCache _memoryCache;
     private readonly HttpClient _http;
     private const string NrkPrefix = "nrkno";
     private const int StaleTime = 1800;
@@ -18,7 +18,7 @@ public class GrabberService
         HostPath = "AppData/__sitecache"
     };
 
-    public GrabberService(ILogger<GrabberService> logger, HttpClient http, MemoryCache memoryCache) {
+    public GrabberService(ILogger<GrabberService> logger, HttpClient http, IMemoryCache memoryCache) {
         _logger = logger;
         _http = http;
         _memoryCache = memoryCache;
