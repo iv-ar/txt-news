@@ -5,11 +5,11 @@
 }
 
 @foreach (var article in Model.Source.Articles) {
-    <section style="margin-bottom: 8px;display: flex; flex-direction: column">
+    <section class="news-link">
         <a href="/les/@Model.Source.Name?url=@article.Href">
-            <h2 style="font-size: 18px">@Html.Raw(article.Title)</h2>
+            <h2>@Html.Raw(article.Title)</h2>
         </a>
-        <a href="@article.Href" style="font-size: 14px;display:flex;justify-content: end" rel="noreferrer">Les på nrk.no</a>
+        <a href="@article.Href" class="source-link" rel="noreferrer">Les på nrk.no</a>
     </section>
 }
 <footer>
