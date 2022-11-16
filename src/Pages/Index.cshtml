@@ -1,21 +1,94 @@
 ﻿@page "{site?}"
 @model IndexModel
 @{
-    ViewData["Title"] = Model.Source.Name;
+    ViewData["Title"] = Model.PageTitle;
 }
+@if (Model.FrontPage != default) {
+    foreach (var article in Model.FrontPage.Articles) {
+        <section class="news-link">
+            <a href="/@Model.FrontPage.Name?url=@article.Href">
+                <h2>@Html.Raw(article.Title)</h2>
+            </a>
+            <div class="bar">
+                <div class="from-the-left">
+                    <button class="reset link" onclick="hide_article(this)">Gjem</button> |
+                </div>
+                <div class="from-the-right">
+                    <a href="@article.Href" class="source-link" rel="noreferrer">Les på nrk.no</a>
+                </div>
+            </div>
+        </section>
+    }
+    <footer>
+        <p>
+            <small>
+                @Model.FrontPage.Attribution &copy; @Model.FrontPage.Name, @(DateTime.UtcNow.Subtract(Model.FrontPage.Created).Minutes) minutter siden
+            </small>
+        </p>
+    </footer>
+    @section scripts {
+        <script>
+        const ignoreSessionStorageKey = "frontpage_ignores";
+        function hide_article(el) {
+            const linkEl = el.closest(".news-link");
+            const ignoreLink = new URL(linkEl.querySelector("a").href).searchParams.get("url");
+            const currentIgnores = sessionStorage.getItem(ignoreSessionStorageKey);
+            let newIgnores = [];
+            if (currentIgnores) newIgnores = JSON.parse(currentIgnores);
+            newIgnores.push(ignoreLink)
+            sessionStorage.setItem(ignoreSessionStorageKey, JSON.stringify(newIgnores));
+            linkEl.remove()
+        }
+        
+        const ignores = sessionStorage.getItem(ignoreSessionStorageKey)
+        if (ignores) {
+            for (const ignore of JSON.parse(ignores)) {
+                console.log(ignore)
+                document.querySelector("a[href*='"+ignore+"']").closest(".news-link").remove();
+            }
+        }
+        </script>
+    }
+    } else if (Model.Article != default) {
+    <div id="art-header" style="display: flex; justify-content: space-between">
+        <div>
+            <h1>@Model.Article.Title</h1>
+            <p>@Model.Article.Subtitle</p>
+        </div>
+    </div>
 
-@foreach (var article in Model.Source.Articles) {
-    <section class="news-link">
-        <a href="/les/@Model.Source.Name?url=@article.Href">
-            <h2>@Html.Raw(article.Title)</h2>
-        </a>
-        <a href="@article.Href" class="source-link" rel="noreferrer">Les på nrk.no</a>
-    </section>
-}
-<footer>
-    <p>
-        <small>
-            @Model.Source.Attribution &copy; @Model.Source.Name, @(DateTime.UtcNow.Subtract(Model.Source.Created).Minutes) minutter siden
-        </small>
-    </p>
-</footer>
+    <article id="art-body">
+        @Html.Raw(Model.Article.Content)
+    </article>
+
+    <footer>
+        <div style="flex-direction:column">
+            @foreach (var author in Model.Article.Authors) {
+                <small style="white-space: nowrap"><b>@author.Name</b>: @author.Title</small>
+                <br/>
+            }
+        </div>
+        <div style="flex-direction: column">
+            @if (Model.Article.PublishedAt != default) {
+                <small style="white-space: nowrap">Publisert: @Model.Article.PublishedAt.ToString("dd-MM-yyyy hh:mm:ss")</small>
+            }
+            @if (Model.Article.UpdatedAt != default) {
+                <br/>
+                <small style="white-space: nowrap">Oppdatert: @Model.Article.UpdatedAt.ToString("dd-MM-yyyy hh:mm:ss")</small>
+            }
+            <br/>
+            <small>
+                <a href="@Model.Article.Href" no-interception>Les på nrk.no</a>
+            </small>
+        </div>
+    </footer>
+
+@section scripts {
+    <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                document.querySelectorAll("a:not([no-interception])").forEach(el => {
+                    if (el.href.indexOf("nrk.no") !== -1) el.href = "/nrk?url=" + el.href;
+                });
+            })
+        </script>
+}}

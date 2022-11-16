@@ -13,16 +13,36 @@ public class IndexModel : PageModel
         _grabber = grabber;
     }
 
-    public NewsSource Source { get; set; }
+    public NewsSource FrontPage { get; set; }
+    public NewsArticle Article { get; set; }
+    public string PageTitle { get; set; }
 
-    public async Task<ActionResult> OnGet(string site) {
-        Source = site switch {
-            "nrk" => await _grabber.GrabNrkAsync(),
-            _ => default
+    public async Task<ActionResult> OnGet([FromRoute] string site, [FromQuery] string url = default) {
+        PageTitle = site switch {
+            "nrk" => "NRK",
+            _ => ""
         };
 
-        if (Source == default) {
-            return Redirect("/nrk");
+        if (url.IsNullOrWhiteSpace()) {
+            FrontPage = site switch {
+                "nrk" => await _grabber.GrabNrkAsync(),
+                _ => default
+            };
+
+            if (FrontPage == default) {
+                return Redirect("/nrk");
+            }
+        } else {
+            Article = site switch {
+                "nrk" => await _grabber.GrabNrkArticleAsync(url),
+                _ => default
+            };
+
+            if (Article == default) {
+                return Redirect(url);
+            }
+
+            PageTitle = PageTitle + " - " + Article.Title;
         }
 
         return Page();
