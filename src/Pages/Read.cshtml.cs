@@ -18,7 +18,7 @@ public class ReadModel : PageModel
             "nrk" => await _grabber.GrabNrkArticleAsync(url),
             _ => default
         };
-        if (Source == default) return Redirect("/");
+        if (Source == default) return Redirect(url);
         return Page();
     }
 }
