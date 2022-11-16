@@ -25,7 +25,6 @@ public static class HtmlSanitiser
             Sanitize(element.ChildNodes[i], excludeSelectors);
         }
 
-
         return element.InnerHtml;
     }
 
@@ -37,29 +36,25 @@ public static class HtmlSanitiser
         return element;
     }
 
-    private static void Sanitize(INode node, string excludeSelectors = default) {
+    private static void Sanitize(INode node, string excludeSelectors = default, string excludeText = default) {
         if (node is IElement htmlElement) {
             if (excludeSelectors.HasValue()) {
                 foreach (var selector in excludeSelectors.Split(',')) {
-                    if (selector.StartsWith(".")) {
-                        if (htmlElement.ClassList.Contains(selector.Replace(".", ""))) {
-                            Console.WriteLine("Removed: " + htmlElement.TagName + ", because of: " + selector);
-                            htmlElement.Remove();
-                            continue;
-                        }
-                    }
-
-                    if (selector.StartsWith("#")) {
-                        if (htmlElement.Id == selector.Replace("#", "")) {
-                            Console.WriteLine("Removed: " + htmlElement.TagName + ", because of: " + selector);
-                            htmlElement.Remove();
-                            continue;
-                        }
-                    }
-
-                    if (htmlElement.TagName == selector.ToUpper()) {
+                    if (
+                        selector.StartsWith(".") && htmlElement.ClassList.Contains(selector.Replace(".", ""))
+                        || selector.StartsWith("#") && htmlElement.Id == selector.Replace("#", "")
+                        || htmlElement.TagName == selector.ToUpper()
+                        || selector.StartsWith("text:") && htmlElement.TextContent.Contains(selector.Replace("text:", ""))
+                    ) {
                         Console.WriteLine("Removed: " + htmlElement.TagName + ", because of: " + selector);
                         htmlElement.Remove();
+                    }
+
+                    if (!selector.StartsWith("text:")) {
+                        foreach (var element in htmlElement.QuerySelectorAll(selector)) {
+                            Console.WriteLine("Removed: " + element.TagName + ", because of: " + selector);
+                            htmlElement.Remove();
+                        }
                     }
                 }
             }
