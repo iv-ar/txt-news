@@ -11,9 +11,10 @@
     </div>
 </div>
 
-<div id="art-body">
+<article id="art-body">
     @Html.Raw(Model.Source.Content)
-</div>
+</article>
+
 <footer>
     <p>
         <div style="display: flex; flex-direction: column; flex-wrap: nowrap;">
@@ -33,9 +34,17 @@
                 }
                 <br/>
                 <small>
-                    <a href="@Model.Source.Href">Les på nrk.no</a>
+                    <a href="@Model.Source.Href" no-interception>Les på nrk.no</a>
                 </small>
             </div>
         </div>
     </p>
 </footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("a:not([no-interception])").forEach(el => {
+        if (el.href.indexOf("nrk.no") !== -1) el.href = "/les/nrk?url=" + el.href;
+    });
+})
+</script>
