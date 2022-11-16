@@ -44,56 +44,59 @@ public class GrabberService
         using var md5 = MD5.Create();
         var articleFilePrefix = "art-" + NrkPrefix + "-" + Convert.ToHexString(md5.ComputeHash(Encoding.UTF8.GetBytes(url)));
         return await _memoryCache.GetOrCreateAsync(articleFilePrefix, async entry => {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-            var source = await GrabSourceAsync(url, articleFilePrefix);
-            var parser = new HtmlParser();
-            var doc = await parser.ParseDocumentAsync(source.Content);
-            var result = new NewsArticle() {
-                CachedAt = source.CacheFileCreatedAt,
-                Href = url,
-                Title = doc.QuerySelector("h1.title")?.TextContent,
-                Subtitle = doc.QuerySelector(".article-lead p")?.TextContent,
-                Authors = new List<NewsArticle.Author>()
-            };
-
-            foreach (var authorNode in doc.QuerySelectorAll(".authors .author")) {
-                var author = new NewsArticle.Author() {
-                    Name = authorNode.QuerySelector(".author__name")?.TextContent,
-                    Title = authorNode.QuerySelector(".author__role")?.TextContent
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+                var source = await GrabSourceAsync(url, articleFilePrefix);
+                var parser = new HtmlParser();
+                var doc = await parser.ParseDocumentAsync(source.Content);
+                var result = new NewsArticle() {
+                    CachedAt = source.CacheFileCreatedAt,
+                    Href = url,
+                    Title = doc.QuerySelector("h1.title")?.TextContent,
+                    Subtitle = doc.QuerySelector(".article-lead p")?.TextContent,
+                    Authors = new List<NewsArticle.Author>()
                 };
-                result.Authors.Add(author);
-            }
 
-            DateTime.TryParse(doc.QuerySelector("time.datePublished")?.Attributes["datetime"]?.Value, out var published);
-            DateTime.TryParse(doc.QuerySelector("time.dateModified")?.Attributes["datetime"]?.Value, out var modified);
+                foreach (var authorNode in doc.QuerySelectorAll(".authors .author")) {
+                    var author = new NewsArticle.Author() {
+                        Name = authorNode.QuerySelector(".author__name")?.TextContent,
+                        Title = authorNode.QuerySelector(".author__role")?.TextContent
+                    };
+                    result.Authors.Add(author);
+                }
 
-            result.UpdatedAt = modified;
-            result.PublishedAt = published;
+                DateTime.TryParse(doc.QuerySelector("time.datePublished")?.Attributes["datetime"]?.Value, out var published);
+                DateTime.TryParse(doc.QuerySelector("time.dateModified")?.Attributes["datetime"]?.Value, out var modified);
 
-            if (doc.QuerySelector("kortstokk-app") != default) {
-                var excludes = new List<string>() {
-                    ".dhks-background",
-                    ".dhks-actions",
-                    ".dhks-credits",
-                    ".dhks-sticky-reset",
-                    ".dhks-byline"
-                };
-                result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".dhks-cardSection").InnerHtml, string.Join(',', excludes));
-            } else {
-                var excludes = new List<string>() {
-                    ".compilation-reference",
-                    ".section-reference",
-                    ".widget",
-                    ".image-reference",
-                    ".video-reference",
-                    ".article-body--updating",
-                    ".reference"
-                };
-                result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, string.Join(',', excludes));
-            }
+                result.UpdatedAt = modified;
+                result.PublishedAt = published;
 
-            return result;
-        });
+                if (doc.QuerySelector("kortstokk-app") != default) {
+                    var excludes = new List<string>() {
+                        ".dhks-background",
+                        ".dhks-actions",
+                        ".dhks-credits",
+                        ".dhks-sticky-reset",
+                        ".dhks-byline"
+                    };
+                    result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".dhks-cardSection").InnerHtml, string.Join(',', excludes));
+                } else if (url.Contains("nrk.no/nyheter")) {
+                    result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".bulletin-text").InnerHtml);
+                } else {
+                    var excludes = new List<string>() {
+                        ".compilation-reference",
+                        ".section-reference",
+                        ".widget",
+                        ".image-reference",
+                        ".video-reference",
+                        ".article-body--updating",
+                        ".reference"
+                    };
+                    result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, string.Join(',', excludes));
+                }
+
+                return result;
+            })
+            ;
     }
 
     public async Task<NewsSource> GrabNrkAsync() {
