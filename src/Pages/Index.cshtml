@@ -26,62 +26,64 @@
             </small>
         </p>
     </footer>
-    @section scripts {
-        <script>
+@section scripts {
+    <script>
         const ignoreSessionStorageKey = "frontpage_ignores";
         function hide_article(el) {
             const linkEl = el.closest(".news-link");
             const ignoreLink = new URL(linkEl.querySelector("a").href).searchParams.get("url");
-            const currentIgnores = sessionStorage.getItem(ignoreSessionStorageKey);
+            const currentIgnores = localStorage.getItem(ignoreSessionStorageKey);
             let newIgnores = [];
             if (currentIgnores) newIgnores = JSON.parse(currentIgnores);
             newIgnores.push(ignoreLink)
-            sessionStorage.setItem(ignoreSessionStorageKey, JSON.stringify(newIgnores));
+            localStorage.setItem(ignoreSessionStorageKey, JSON.stringify(newIgnores));
             linkEl.remove()
         }
         
-        const ignores = sessionStorage.getItem(ignoreSessionStorageKey)
+        const ignores = localStorage.getItem(ignoreSessionStorageKey)
         if (ignores) {
             for (const ignore of JSON.parse(ignores)) {
-                console.log(ignore)
-                document.querySelector("a[href*='"+ignore+"']").closest(".news-link").remove();
+                document.querySelector("a[href*='" + ignore + "']").closest(".news-link").remove();
             }
         }
         </script>
-    }
-    } else if (Model.Article != default) {
-    <div id="art-header" style="display: flex; justify-content: space-between">
-        <div>
-            <h1>@Model.Article.Title</h1>
-            <p>@Model.Article.Subtitle</p>
-        </div>
-    </div>
+}} else if (Model.Article != default) {
+     <details>
+         <summary>Detaljer</summary>
+         <div style="flex-direction:column">
+             @foreach (var author in Model.Article.Authors) {
+                 <small style="white-space: nowrap"><b>@author.Name</b>: @author.Title</small>
+                 <br/>
+             }
+         </div>
+         <div style="flex-direction: column">
+             @if (Model.Article.PublishedAt != default) {
+                 <small style="white-space: nowrap">Publisert: @Model.Article.PublishedAt.ToString("dd-MM-yyyy hh:mm:ss")</small>
+             }
+             @if (Model.Article.UpdatedAt != default) {
+                 <br/>
+                 <small style="white-space: nowrap">Oppdatert: @Model.Article.UpdatedAt.ToString("dd-MM-yyyy hh:mm:ss")</small>
+             }
+             <br/>
+             <small>
+                 <a href="@Model.Article.Href" no-interception>Les på nrk.no</a>
+             </small>
+         </div>
+     </details>
+     <div id="art-header" style="display: flex; justify-content: space-between">
+         <div>
+             <h1>@Model.Article.Title</h1>
+             <p>@Model.Article.Subtitle</p>
+         </div>
+     </div>
 
-    <article id="art-body">
-        @Html.Raw(Model.Article.Content)
-    </article>
+     <article id="art-body">
+         @Html.Raw(Model.Article.Content)
+     </article>
 
-    <footer>
-        <div style="flex-direction:column">
-            @foreach (var author in Model.Article.Authors) {
-                <small style="white-space: nowrap"><b>@author.Name</b>: @author.Title</small>
-                <br/>
-            }
-        </div>
-        <div style="flex-direction: column">
-            @if (Model.Article.PublishedAt != default) {
-                <small style="white-space: nowrap">Publisert: @Model.Article.PublishedAt.ToString("dd-MM-yyyy hh:mm:ss")</small>
-            }
-            @if (Model.Article.UpdatedAt != default) {
-                <br/>
-                <small style="white-space: nowrap">Oppdatert: @Model.Article.UpdatedAt.ToString("dd-MM-yyyy hh:mm:ss")</small>
-            }
-            <br/>
-            <small>
-                <a href="@Model.Article.Href" no-interception>Les på nrk.no</a>
-            </small>
-        </div>
-    </footer>
+     <footer>
+
+     </footer>
 
 @section scripts {
     <script>
@@ -91,4 +93,4 @@
                 });
             })
         </script>
-}}
+} }

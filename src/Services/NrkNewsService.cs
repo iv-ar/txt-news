@@ -6,9 +6,9 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace I2R.LightNews.Services;
 
-public class GrabberService
+public class NrkNewsService
 {
-    private readonly ILogger<GrabberService> _logger;
+    private readonly ILogger<NrkNewsService> _logger;
     private readonly IMemoryCache _memoryCache;
     private readonly HttpClient _http;
     private const string NrkPrefix = "nrkno";
@@ -18,7 +18,7 @@ public class GrabberService
         HostPath = "AppData/__sitecache"
     };
 
-    public GrabberService(ILogger<GrabberService> logger, HttpClient http, IMemoryCache memoryCache) {
+    public NrkNewsService(ILogger<NrkNewsService> logger, HttpClient http, IMemoryCache memoryCache) {
         _logger = logger;
         _http = http;
         _memoryCache = memoryCache;
@@ -100,7 +100,7 @@ public class GrabberService
                 result.Title = doc.QuerySelector(".article-feature__intro h1").TextContent;
                 var contentHtml = doc.QuerySelector(".article-feature__body").InnerHtml;
                 result.Content = HtmlSanitiser.SanitizeHtmlFragment(subtitle + contentHtml, string.Join(',', defaultExcludes));
-            } else if (url.Contains("nrk.no/nyheter") || doc.QuerySelector(".bulletin-text") != default) {
+            } else if (url.Contains("nrk.no/nyheter") || (doc.QuerySelector(".bulletin-text") != default && doc.QuerySelector(".article-body") == defaultExcludes)) {
                 result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".bulletin-text").InnerHtml);
             } else {
                 result.Content = HtmlSanitiser.SanitizeHtmlFragment(doc.QuerySelector(".article-body").InnerHtml, string.Join(',', defaultExcludes));

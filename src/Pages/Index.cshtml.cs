@@ -6,11 +6,11 @@ namespace I2R.LightNews.Pages;
 public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
-    private readonly GrabberService _grabber;
+    private readonly NrkNewsService _nrkNews;
 
-    public IndexModel(ILogger<IndexModel> logger, GrabberService grabber) {
+    public IndexModel(ILogger<IndexModel> logger, NrkNewsService nrkNews) {
         _logger = logger;
-        _grabber = grabber;
+        _nrkNews = nrkNews;
     }
 
     public NewsSource FrontPage { get; set; }
@@ -25,7 +25,7 @@ public class IndexModel : PageModel
 
         if (url.IsNullOrWhiteSpace()) {
             FrontPage = site switch {
-                "nrk" => await _grabber.GrabNrkAsync(),
+                "nrk" => await _nrkNews.GrabNrkAsync(),
                 _ => default
             };
 
@@ -34,7 +34,7 @@ public class IndexModel : PageModel
             }
         } else {
             Article = site switch {
-                "nrk" => await _grabber.GrabNrkArticleAsync(url),
+                "nrk" => await _nrkNews.GrabNrkArticleAsync(url),
                 _ => default
             };
 

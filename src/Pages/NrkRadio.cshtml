@@ -1,0 +1,12 @@
+@page "/nrk-radio"
+@model I2R.LightNews.Pages.NrkRadio
+@{
+    Layout = "_Layout";
+}
+
+<aside id="app-data" style="display: none" aria-hidden="true" data-json="@(Model.FrontPageDataJSON)"></aside>
+<div id="app"></div>
+
+@section Scripts {
+    <script asp-append-version="true" src="~/radio.js"></script>
+}
