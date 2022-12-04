@@ -35,6 +35,7 @@ public class RadioCategorySearchResult
         {
             public NrkLinks.LinkModel CustomSeason { get; set; }
             public NrkLinks.LinkModel Series { get; set; }
+            public NrkLinks.LinkModel Podcast { get; set; }
         }
     }
 

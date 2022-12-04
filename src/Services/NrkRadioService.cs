@@ -20,9 +20,7 @@ public class NrkRadioService
         var letters = "#ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ".ToCharArray();
         var skip = 0;
         foreach (var letter in letters) {
-            
-            // TODO: Support series._links.podcast in addition to series._links.seasons
-            var path = "/radio/search/categories/alt-innhold?letter=" + letter == "#" ? "%23" : letter + "&skip=0&take=50";
+            var path = "/radio/search/categories/alt-innhold?letter=" + (letter == '#' ? "%23" : letter) + "&skip=0&take=50";
             while (path.HasValue()) {
                 var response = await _http.GetFromJsonAsync<RadioCategorySearchResult>(path);
                 if (response == default) break;
@@ -35,8 +33,11 @@ public class NrkRadioService
                     };
                     var seriesId = dbSeries.Id > 0 ? dbSeries.Id : RadioIndexDb.AddSeries(dbSeries);
                     _logger.LogInformation("Added series {0} with id {1}, to the database", dbSeries.Name, seriesId);
-                    if (!series.Links?.Series?.Href?.HasValue() ?? true) continue;
-                    var seriesMetadata = await _http.GetFromJsonAsync<NrkRadioSeries>(series.Links.Series.Href);
+                    if ((series.Links?.Series?.Href.IsNullOrWhiteSpace() ?? true)
+                        && (series.Links?.Series?.Href.IsNullOrWhiteSpace() ?? true)
+                        && (series.Links?.Series?.Href.IsNullOrWhiteSpace() ?? true)
+                       ) continue;
+                    var seriesMetadata = await _http.GetFromJsonAsync<NrkRadioSeries>(series.Links?.Series?.Href ?? series.Links?.Podcast?.Href ?? series.Links?.CustomSeason?.Href);
                     if (seriesMetadata == default) continue;
                     await Task.Delay(1000);
                     if (seriesMetadata.Embedded.Seasons?.Any() ?? false) {
@@ -55,7 +56,7 @@ public class NrkRadioService
                     }
                 }
 
-                path = response.Links.NextPage.Href.HasValue() ? response.Links.NextPage.Href : "";
+                path = response.Links?.NextPage?.Href?.HasValue() ?? false ? response.Links.NextPage.Href : "";
             }
         }
     }
@@ -76,8 +77,9 @@ public class NrkRadioService
                 continue;
             }
 
-            var playbackResponse = await _http.GetFromJsonAsync<NrkPlaybackManifest>("/playback/manifest/program/" + dbEpisode.NrkId);
-            if (playbackResponse == default) continue;
+            var manifestType = episode.Links.Playback.Href.Contains("podcast") ? "podcast" : "program";
+            var playbackResponse = await _http.GetFromJsonAsync<NrkPlaybackManifest>("/playback/manifest/" + manifestType + "/" + dbEpisode.NrkId);
+            if (playbackResponse?.Playable == null) continue;
             dbEpisode.SourceUrl = playbackResponse.Playable.Assets.FirstOrDefault()?.Url;
             var episodeId = dbEpisode.Id > 0 ? dbEpisode.Id : RadioIndexDb.AddEpisode(dbEpisode);
             _logger.LogInformation("Added episode {0} to series {1} season {2} with id {3}, to the database", dbEpisode.Name, dbSeries.Name, dbSeason?.Name ?? "!!NO SEASON!!", episodeId);
