@@ -10,8 +10,9 @@ public class RadioSearchEndpoint : EndpointBase
         _radio = radio;
     }
 
-    [HttpGet("~/radio-search")]
-    public async Task HandleASync(string q) {
-        
+    [HttpGet("~/create-radio-index")]
+    public async Task<ActionResult> HandleASync() {
+        await _radio.CreateIndex();
+        return Ok();
     }
 }

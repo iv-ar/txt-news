@@ -5,7 +5,7 @@ namespace I2R.LightNews.Models;
 public class RadioCategorySearchResult
 {
     [JsonPropertyName("_links")]
-    public LinksModel Links { get; set; }
+    public NrkLinks Links { get; set; }
 
     public List<LetterModel> Letters { get; set; }
     public string Title { get; set; }
@@ -17,7 +17,7 @@ public class RadioCategorySearchResult
         [JsonPropertyName("_links")]
         public LinksModel Links { get; set; }
 
-        public Guid Id { get; set; }
+        public string Id { get; set; }
         public string SeriesId { get; set; }
         public string SeasonId { get; set; }
         public string Title { get; set; }
@@ -33,7 +33,8 @@ public class RadioCategorySearchResult
 
         public class LinksModel
         {
-            public RadioCategorySearchResult.LinksModel.LinkModel CustomSeason { get; set; }
+            public NrkLinks.LinkModel CustomSeason { get; set; }
+            public NrkLinks.LinkModel Series { get; set; }
         }
     }
 
@@ -42,17 +43,5 @@ public class RadioCategorySearchResult
         public string Letter { get; set; }
         public int Count { get; set; }
         public string Link { get; set; }
-    }
-
-    public class LinksModel
-    {
-        public LinkModel NextPage { get; set; }
-        public LinkModel LastPage { get; set; }
-
-
-        public class LinkModel
-        {
-            public string Href { get; set; }
-        }
     }
 }

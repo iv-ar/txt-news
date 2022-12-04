@@ -9,27 +9,58 @@ public static class RadioIndexDb
 {
     private static readonly string ConnectionString = "data source=AppData/radio-index.db";
 
-    public static void AddEntry(RadioSeries entry) {
+    public static int AddSeries(RadioSeries entry) {
         using var db = new SqliteConnection(ConnectionString);
-        if (!db.TableExists("series")) return;
-        var addOperation = db.Execute(@"insert series(name,description,canonical_url,episodes) values (@name,@description,@canonical_url,@episodes)", new {
+        if (!db.TableExists("series")) return -1;
+        return db.ExecuteScalar<int>(@"
+insert into series(name,description,canonical_url,nrk_id) values (@name,@description,@canonical_url,@nrk_id);
+select last_insert_rowid();", new {
             name = entry.Name,
             description = entry.Description,
-            canonical_url = entry.CanonicalUri,
-            episodes = JsonSerializer.Serialize(entry.Episodes)
+            canonical_url = entry.CanonicalUrl,
+            nrk_id = entry.NrkId
         });
-        if (addOperation == 0) Console.WriteLine("No rows were added");
     }
-    
-    public static void DeleteEntry(int id) { }
 
-    public static RadioSeries GetEntry(int id) {
+    public static int AddSeason(RadioSeason entry) {
+        using var db = new SqliteConnection(ConnectionString);
+        if (!db.TableExists("seasons")) return -1;
+        return db.ExecuteScalar<int>(@"
+insert into seasons(name,description,canonical_url,nrk_id,series_id) values (@name,@description,@canonical_url,@nrk_id,@series_id);
+select last_insert_rowid();", new {
+            name = entry.Name,
+            description = entry.Description,
+            canonical_url = entry.CanonicalUrl,
+            nrk_id = entry.NrkId,
+            series_id = entry.SeriesId
+        });
+    }
+
+    public static int AddEpisode(RadioEpisode entry) {
+        using var db = new SqliteConnection(ConnectionString);
+        if (!db.TableExists("episodes")) return -1;
+        return db.ExecuteScalar<int>(@"
+insert into episodes(title,subtitle,canonical_url,nrk_id,series_id,season_id,source_url) values (@title,@subtitle,@canonical_url,@nrk_id,@series_id,@season_id,@source_url);
+select last_insert_rowid();", new {
+            title = entry.Title,
+            subtitle = entry.Subtitle,
+            canonical_url = entry.CanonicalUrl,
+            nrk_id = entry.NrkId,
+            series_id = entry.SeriesId,
+            season_id = entry.SeasonId,
+            source_url = entry.SourceUrl,
+        });
+    }
+
+    public static void DeleteSeries(int id) { }
+
+    public static RadioSeries GetSeries(int id) {
         using var db = new SqliteConnection(ConnectionString);
         if (!db.TableExists("series")) return default;
         return db.QueryFirstOrDefault<RadioSeries>(@"select * from series where id=@id", new {id});
     }
 
-    public static List<RadioSeries> GetEntries(string query, bool includeEpisodes = false) {
+    public static List<RadioSeries> GetSeries(string query, bool includeEpisodes = false) {
         using var db = new SqliteConnection(ConnectionString);
         if (!db.TableExists("series")) return default;
         var selectSet = includeEpisodes ? "*" : "id,name,description,type,canonical_url";
@@ -49,7 +80,35 @@ public static class RadioIndexDb
                     description text,
                     type text,
                     canonical_url text,
-                    episodes json
+                    nrk_id text
+                )
+            ");
+        }
+
+        if (!db.TableExists("seasons")) {
+            db.Execute(@"
+                create table seasons(
+                    id integer primary key autoincrement,
+                    series_id integer,
+                    name text,
+                    description text,
+                    canonical_url text,
+                    nrk_id text
+                )
+            ");
+        }
+
+        if (!db.TableExists("episodes")) {
+            db.Execute(@"
+                create table episodes(
+                    id integer primary key autoincrement,
+                    series_id integer,
+                    season_id integer,
+                    name text,
+                    description text,
+                    canonical_url text,
+                    source_url text,
+                    nrk_id text
                 )
             ");
         }
