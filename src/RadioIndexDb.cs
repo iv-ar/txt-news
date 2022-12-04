@@ -40,10 +40,10 @@ select last_insert_rowid();", new {
         using var db = new SqliteConnection(ConnectionString);
         if (!db.TableExists("episodes")) return -1;
         return db.ExecuteScalar<int>(@"
-insert into episodes(title,subtitle,canonical_url,nrk_id,series_id,season_id,source_url) values (@title,@subtitle,@canonical_url,@nrk_id,@series_id,@season_id,@source_url);
+insert into episodes(name,description,canonical_url,nrk_id,series_id,season_id,source_url) values (@name,@description,@canonical_url,@nrk_id,@series_id,@season_id,@source_url);
 select last_insert_rowid();", new {
-            title = entry.Title,
-            subtitle = entry.Subtitle,
+            name = entry.Name,
+            description = entry.Description,
             canonical_url = entry.CanonicalUrl,
             nrk_id = entry.NrkId,
             series_id = entry.SeriesId,
@@ -52,12 +52,22 @@ select last_insert_rowid();", new {
         });
     }
 
-    public static void DeleteSeries(int id) { }
-
-    public static RadioSeries GetSeries(int id) {
+    public static RadioSeries GetSeriesByNrkId(string nrkId) {
         using var db = new SqliteConnection(ConnectionString);
         if (!db.TableExists("series")) return default;
-        return db.QueryFirstOrDefault<RadioSeries>(@"select * from series where id=@id", new {id});
+        return db.QueryFirstOrDefault<RadioSeries>(@"select * from series where nrk_id=@nrkId", new {nrkId});
+    }
+
+    public static RadioSeason GetSeasonByNrkId(string nrkId) {
+        using var db = new SqliteConnection(ConnectionString);
+        if (!db.TableExists("seasons")) return default;
+        return db.QueryFirstOrDefault<RadioSeason>(@"select * from seasons where nrk_id=@nrkId", new {nrkId});
+    }
+
+    public static RadioEpisode GetEpisodeByNrkId(string nrkId) {
+        using var db = new SqliteConnection(ConnectionString);
+        if (!db.TableExists("episodes")) return default;
+        return db.QueryFirstOrDefault<RadioEpisode>(@"select * from episodes where nrk_id=@nrkId", new {nrkId});
     }
 
     public static List<RadioSeries> GetSeries(string query, bool includeEpisodes = false) {

@@ -13,11 +13,12 @@ public class NrkRadioSeries
     public class EmbeddedModel
     {
         public List<SeasonModel> Seasons { get; set; }
+        public SeasonModel.EpisodeModel Episodes { get; set; }
 
         public class SeasonModel
         {
-            public List<TitleModel> Titles { get; set; }
-            public List<EpisodeModel> Episodes { get; set; }
+            public TitleModel Titles { get; set; }
+            public EpisodeModel Episodes { get; set; }
             public string Id { get; set; }
             public bool HasAvailableEpisodes { get; set; }
             public int EpisodeCount { get; set; }
@@ -38,9 +39,12 @@ public class NrkRadioSeries
 
                         public string Id { get; set; }
                         public string EpisodeId { get; set; }
-                        public List<TitlesModel> Titles { get; set; }
+                        public TitlesModel Titles { get; set; }
                         public DateTime Date { get; set; }
+
                         public int DurationInSeconds { get; set; }
+
+                        // int 😬
                         public int ProductionYear { get; set; }
 
                         public class TitlesModel

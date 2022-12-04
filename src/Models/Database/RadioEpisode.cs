@@ -6,8 +6,8 @@ public class RadioEpisode
     public int SeriesId { get; set; }
     public int SeasonId { get; set; }
     public string NrkId { get; set; }
-    public string Title { get; set; }
-    public string Subtitle { get; set; }
+    public string Name { get; set; }
+    public string Description { get; set; }
     public string SourceUrl { get; set; }
     public string CanonicalUrl { get; set; }
 }
