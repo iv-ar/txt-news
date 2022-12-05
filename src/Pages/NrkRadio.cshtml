@@ -1,12 +1,13 @@
 @page "/nrk-radio"
 @model I2R.LightNews.Pages.NrkRadio
 @{
-    Layout = "_Layout";
+    ViewData["Title"] = "NRK Radio";
 }
 
 <aside id="app-data" style="display: none" aria-hidden="true" data-json="@(Model.FrontPageDataJSON)"></aside>
 <div id="app"></div>
 
 @section Scripts {
+    <script src="~/vendor/fuzzysort.min.js"></script>
     <script asp-append-version="true" src="~/radio.js"></script>
 }
