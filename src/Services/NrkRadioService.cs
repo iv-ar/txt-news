@@ -16,15 +16,15 @@ public class NrkRadioService
         _logger = logger;
     }
 
-    public async Task CreateIndex() {
+    public async Task CreateIndexAsync(CancellationToken cancellationToken = default) {
         var letters = "#ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ".ToCharArray();
         var skip = 0;
         foreach (var letter in letters) {
             var path = "/radio/search/categories/alt-innhold?letter=" + (letter == '#' ? "%23" : letter) + "&skip=0&take=50";
             while (path.HasValue()) {
-                var response = await _http.GetFromJsonAsync<RadioCategorySearchResult>(path);
+                var response = await _http.GetFromJsonAsync<RadioCategorySearchResult>(path, cancellationToken);
                 if (response == default) break;
-                await Task.Delay(2000);
+                await Task.Delay(2000, cancellationToken);
                 foreach (var series in response.Series) {
                     var dbSeries = RadioIndexDb.GetSeriesByNrkId(series.Id) ?? new RadioSeries {
                         Name = series.Title,
@@ -37,9 +37,9 @@ public class NrkRadioService
                         && (series.Links?.Series?.Href.IsNullOrWhiteSpace() ?? true)
                         && (series.Links?.Series?.Href.IsNullOrWhiteSpace() ?? true)
                        ) continue;
-                    var seriesMetadata = await _http.GetFromJsonAsync<NrkRadioSeries>(series.Links?.Series?.Href ?? series.Links?.Podcast?.Href ?? series.Links?.CustomSeason?.Href);
+                    var seriesMetadata = await _http.GetFromJsonAsync<NrkRadioSeries>(series.Links?.Series?.Href ?? series.Links?.Podcast?.Href ?? series.Links?.CustomSeason?.Href, cancellationToken);
                     if (seriesMetadata == default) continue;
-                    await Task.Delay(1000);
+                    await Task.Delay(1000, cancellationToken);
                     if (seriesMetadata.Embedded.Seasons?.Any() ?? false) {
                         foreach (var season in seriesMetadata.Embedded.Seasons) {
                             var dbSeason = RadioIndexDb.GetSeasonByNrkId(season.Id) ?? new RadioSeason() {
@@ -49,10 +49,10 @@ public class NrkRadioService
                             };
                             var seasonId = dbSeason.Id > 0 ? dbSeason.Id : RadioIndexDb.AddSeason(dbSeason);
                             _logger.LogInformation("Added season {0} to series {1} with id {2}, to the database", dbSeason.Name, dbSeries.Name, seasonId);
-                            await AddEpisodesAsync(season.Episodes.Embedded.Episodes, dbSeries, dbSeason);
+                            await AddEpisodesAsync(season.Episodes.Embedded.Episodes, dbSeries, dbSeason, cancellationToken);
                         }
                     } else if (seriesMetadata.Embedded.Episodes.Embedded.Episodes?.Any() ?? false) {
-                        await AddEpisodesAsync(seriesMetadata.Embedded.Episodes.Embedded.Episodes, dbSeries);
+                        await AddEpisodesAsync(seriesMetadata.Embedded.Episodes.Embedded.Episodes, dbSeries, null, cancellationToken);
                     }
                 }
 
@@ -61,7 +61,7 @@ public class NrkRadioService
         }
     }
 
-    private async Task AddEpisodesAsync(List<NrkRadioSeries.EmbeddedModel.SeasonModel.EpisodeModel.EmbeddedModel.EpisodeModel> lol, RadioSeries dbSeries, RadioSeason dbSeason = default) {
+    private async Task AddEpisodesAsync(List<NrkRadioSeries.EmbeddedModel.SeasonModel.EpisodeModel.EmbeddedModel.EpisodeModel> lol, RadioSeries dbSeries, RadioSeason dbSeason = default, CancellationToken cancellationToken = default) {
         foreach (var episode in lol) {
             var dbEpisode = RadioIndexDb.GetEpisodeByNrkId(episode.EpisodeId) ?? new RadioEpisode {
                 CanonicalUrl = episode.Links.Share.Href,
@@ -78,17 +78,11 @@ public class NrkRadioService
             }
 
             var manifestType = episode.Links.Playback.Href.Contains("podcast") ? "podcast" : "program";
-            var playbackResponse = await _http.GetFromJsonAsync<NrkPlaybackManifest>("/playback/manifest/" + manifestType + "/" + dbEpisode.NrkId);
+            var playbackResponse = await _http.GetFromJsonAsync<NrkPlaybackManifest>("/playback/manifest/" + manifestType + "/" + dbEpisode.NrkId, cancellationToken);
             if (playbackResponse?.Playable == null) continue;
             dbEpisode.SourceUrl = playbackResponse.Playable.Assets.FirstOrDefault()?.Url;
             var episodeId = dbEpisode.Id > 0 ? dbEpisode.Id : RadioIndexDb.AddEpisode(dbEpisode);
             _logger.LogInformation("Added episode {0} to series {1} season {2} with id {3}, to the database", dbEpisode.Name, dbSeries.Name, dbSeason?.Name ?? "!!NO SEASON!!", episodeId);
         }
-    }
-
-    public async Task<RadioCategorySearchResult> SearchCategoriesAsync(string query, int take = 50, int skip = 0) {
-        return await _http.GetFromJsonAsync<RadioCategorySearchResult>(
-            "/radio/search/categories/alt-innhold?q=" + query + "&take=" + take + "&skip=" + skip
-        );
     }
 }
