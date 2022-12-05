@@ -58,6 +58,27 @@ select last_insert_rowid();", new {
         return db.QueryFirstOrDefault<RadioSeries>(@"select * from series where nrk_id=@nrkId", new {nrkId});
     }
 
+    public static RadioSeries GetSeriesById(int id) {
+        using var db = new SqliteConnection(ConnectionString);
+        if (!db.TableExists("series")) return default;
+        return db.QueryFirstOrDefault<RadioSeries>(@"select * from series where id=@id", new {id});
+    }
+
+    public static SeriesDetails GetSeriesDetailsById(int id) {
+        using var db = new SqliteConnection(ConnectionString);
+        if (!db.TableExists("series")) return default;
+        return db.QueryFirstOrDefault<SeriesDetails>(@"
+    select id as s_id, name as s_name from seasons where series_id=1;
+    select id as e_id, name as e_name, source_url as e_source from episodes where series_id=1;
+", new {id});
+    }
+
+    public class SeriesDetails
+    {
+        public List<RadioSeason> Seasons { get; set; }
+        public List<RadioEpisode> Episodes { get; set; }
+    }
+
     public static RadioSeason GetSeasonByNrkId(string nrkId) {
         using var db = new SqliteConnection(ConnectionString);
         if (!db.TableExists("seasons")) return default;

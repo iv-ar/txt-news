@@ -14,16 +14,29 @@ async function get_series() {
 
 function search(query) {
     if (!query) {
-        document.querySelectorAll("#series li").forEach(el => el.style.display = "list-item");
+        document.querySelectorAll("#series li").forEach(el => {
+            el.style.display = "list-item";
+            el.innerHTML = el.innerHTML
+                .replaceAll("<b>", "")
+                .replaceAll("</b>", "");
+        });
         return;
     }
     console.log("Searching for " + query);
     const results = fuzzysort.go(query, series, {key: "name"});
     console.log("Found " + results.length + " results");
-    const ids = results.map(x => x.obj.id);
     for (const seriesEl of document.querySelectorAll("#series li")) {
-        seriesEl.style.display = ids.includes(parseInt(seriesEl.dataset.id)) ? "list-item" : "none";
+        const matchIndex = results.findIndex(p => p.obj.id === parseInt(seriesEl.dataset.id));
+        const isMatch = matchIndex !== -1;
+        seriesEl.style.display = isMatch ? "list-item" : "none";
+        if (isMatch) {
+            seriesEl.querySelector("summary").innerHTML = fuzzysort.highlight(results[matchIndex], "<b>", "</b>");
+        }
     }
+}
+
+function expand_series(listItem) {
+    console.log("Toggling " + listItem.dataset.id);
 }
 
 function build_frontpage(series) {
@@ -38,8 +51,12 @@ function build_frontpage(series) {
         const listItemDetailsEl = document.createElement("details");
         const listItemDetailsSummaryEl = document.createElement("summary");
         listItemEl.dataset.id = serie.id;
-        listItemDetailsSummaryEl.innerText = serie.name;
+        listItemDetailsSummaryEl.innerHTML = "<span>" + serie.name + "</span>";
         listItemDetailsEl.appendChild(listItemDetailsSummaryEl);
+        listItemDetailsEl.ontoggle = (event) => {
+            expand_series(event.target.parentNode);
+        };
+        listItemDetailsEl.style.cursor = "pointer";
         listItemEl.appendChild(listItemDetailsEl);
         listEl.appendChild(listItemEl);
     }
